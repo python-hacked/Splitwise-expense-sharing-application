@@ -1,0 +1,17 @@
+<form method="post">
+    {% csrf_token %}
+    <label for="payer">Payer:</label>
+    <select name="payer">
+        {% for user in users %}
+            <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <label for="amount">Total Amount:</label>
+    <input type="text" name="amount">
+    <br>
+    <label for="owes_data">Owes Data:</label>
+    <textarea name="owes_data"></textarea>
+    <br>
+    <input type="submit" value="Split Expense">
+</form>

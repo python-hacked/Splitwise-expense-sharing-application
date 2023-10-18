@@ -1,0 +1,23 @@
+<!-- expense_manager/templates/split_equally.html -->
+
+<form method="post">
+    {% csrf_token %}
+    <label for="payer_name">Payer Name:</label>
+    <select name="payer_name">
+        {% for user in users %}
+            <option value="{{ user.name }}">{{ user.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <label for="amount">Amount:</label>
+    <input type="text" name="amount">
+    <br>
+    <label for="participants">Participants:</label>
+    <select name="participants" multiple>
+        {% for user in users %}
+            <option value="{{ user.name }}">{{ user.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <input type="submit" value="Split Equally">
+</form>
