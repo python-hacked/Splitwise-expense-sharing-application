@@ -1,9 +1,11 @@
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from .models import *
-from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from django.db.models import Sum
+from django.core.mail import send_mail
+from django.views.decorators.csrf import csrf_exempt
 
 
 def index(request):
@@ -85,37 +87,57 @@ def add_expense(request):
         return render(request, "add_expense.html", context={"users": users})
 
 
-def view_balances(request, user_id=None):
+def view_balances(request):
     users = User.objects.all()
     balances = {}
 
-    if user_id is not None:
-        # Retrieve a specific user by ID or name
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return HttpResponse("User not found")
-
-        # Calculate the balance for the specific user
+    for user in users:
         participant_balances = ExpenseParticipant.objects.filter(user=user)
-        total_paid_share = sum([ep.paid_share for ep in participant_balances])
-        total_owe_share = sum([ep.owe_share for ep in participant_balances])
+
+        total_paid_share = participant_balances.aggregate(total_paid=Sum("paid_share"))[
+            "total_paid"
+        ] or Decimal("0.00")
+        total_owe_share = participant_balances.aggregate(total_owe=Sum("owe_share"))[
+            "total_owe"
+        ] or Decimal("0.00")
+
         balance = total_paid_share - total_owe_share
+        balance = round(balance, 2)
 
-        # Add the specific user's balance to the balances dictionary
+        print(
+            f"User: {user.name}, Total Paid: {total_paid_share}, Total Owe: {total_owe_share}, Balance: {balance}"
+        )
         balances[user.name] = balance
+
+    balances_with_user = []
+    for user in users:
+        balance = balances.get(user.name, "")
+        balances_with_user.append({"user": user, "balance": balance})
+
+    return render(
+        request,
+        "view_balances.html",
+        context={"balances_with_user": balances_with_user},
+    )
+
+
+@csrf_exempt
+def send_email(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        amount = request.POST.get("amount")
+
+        # Replace the placeholders with your email settings
+        subject = "Amount Reminder"
+        message = f"You need to pay {amount} as soon as possible."
+        from_email = "your_email@example.com"  # Sender's email
+        recipient_list = [email]
+
+        send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+
+        return HttpResponse("Email sent successfully!")
     else:
-        for user in users:
-            participant_balances = ExpenseParticipant.objects.filter(user=user)
-            total_paid_share = sum([ep.paid_share for ep in participant_balances])
-            total_owe_share = sum([ep.owe_share for ep in participant_balances])
-            balance = total_paid_share - total_owe_share
-            balances[user.name] = balance
-
-    print("Users:", users)
-    print("Balances:", balances)
-    return render(request, "view_balances.html", context={"balances": balances, "user":users})
-
+        return render(request, "notifaction.html")
 
 
 def split_equally(request):
