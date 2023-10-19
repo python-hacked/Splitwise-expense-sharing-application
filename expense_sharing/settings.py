@@ -1,4 +1,8 @@
+import os
 from pathlib import Path
+from celery import Celery
+from celery.schedules import crontab
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -60,6 +64,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "expense_sharing.wsgi.application"
 
 
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -119,3 +124,15 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = "ckhajwan@gmail.com"
 EMAIL_HOST_PASSWORD = "rdzpokwprrcrldij"
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example broker URL, adjust as needed
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Example result backend URL, adjust as needed
+
+CELERY_BEAT_SCHEDULE = {
+    'send_weekly_reminder': {
+        'task': 'expense_sharing.api.send_reminder',  # Adjust to your project and app names
+        'schedule': crontab(day_of_week=1, hour=0, minute=0),  # Every Monday at midnight
+    },
+}
+

@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,6 +9,17 @@ from django.db.models import Sum
 from django.core.mail import send_mail
 from .serializers import NotificationSerializer
 from rest_framework.decorators import api_view
+from celery import shared_task
+from django.core.mail import send_mail
+from .tasks import send_notification_email
+
+
+def create_expense(request):
+    subject = "Notification Subject"
+    message = "You owe $100 for the expense."  # Customize your email content
+    participants = ["user1@example.com", "user2@example.com"]
+    send_notification_email.delay(participants, subject, message)
+    return HttpResponse("Expense created successfully.")
 
 
 class AddExpenseView(APIView):
@@ -102,15 +113,46 @@ def send_notification(request):
         email = serializer.validated_data["email"]
         amount = serializer.validated_data["amount"]
 
+        # Check if "participants" key exists in the data
+        if "participants" in serializer.validated_data:
+            participants = serializer.validated_data["participants"]
+        else:
+            participants = []  # Provide a default empty list
+
         # Customize the email subject and message
-        subject = "Notification Subject"
+        subject = "Expense Notification"
         message = f"You owe ${amount} for the expense."
 
-        # Send the email
-        send_mail(subject, message, "your_email@example.com", [email])
+        # Send the email asynchronously using Celery or a similar task queue
+        send_notification_email.delay(participants, subject, message)
 
         return Response(
             {"message": "Notification sent successfully"},
             status=status.HTTP_201_CREATED,
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@shared_task
+def send_reminder_email():
+    users = User.objects.all()
+    amounts_owed = {}
+    for user in users:
+        user_owed = Decimal(0)
+
+        user_expenses = ExpenseParticipant.objects.filter(user=user)
+
+        for expense in user_expenses:
+            user_owed += expense.owe_share
+
+        amounts_owed[user.name] = user_owed
+
+    # Customize the email subject and message with the calculated data
+    subject = "Weekly Reminder"
+    message = "Here is a summary of amounts you owe to other users:\n"
+
+    for user, amount in amounts_owed.items():
+        message += f"{user}: ${amount}\n"
+
+    # Send the reminder email
+    send_mail(subject, message, "satishchoudhary394@gmail.com", [email])

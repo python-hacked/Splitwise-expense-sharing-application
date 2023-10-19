@@ -14,7 +14,7 @@ Make sure you have the following installed on your system:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/expense-splitting-app.git
+   git clone https://github.com/python-hacked/Splitwise-expense-sharing-application.git
 
 python -m venv venv
 venv\Scripts\activate
@@ -127,3 +127,43 @@ Example Request JSON:
   "amount": 25.00
 }
 
+Application Configuration
+This section details the key configuration settings for the application. Make sure to update these settings to match your environment and requirements.
+
+
+Email Configuration
+To send email notifications, configure the email backend and email server settings in the settings.py file. Update the following settings as needed:
+
+# settings.py
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"  # Choose the email backend
+EMAIL_HOST = "smtp.gmail.com"  # Update the email host
+EMAIL_USE_TLS = True  # Set to True if your email server uses TLS
+EMAIL_PORT = 587  # Update the email server port
+EMAIL_HOST_USER = "your_email@gmail.com"  # Update with your email address
+EMAIL_HOST_PASSWORD = "your_email_password"  # Update with your email password
+
+Celery Configuration
+Celery is used for handling asynchronous tasks, such as sending email notifications. Adjust the Celery configuration in the settings.py file to match your setup.
+
+# settings.py
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"  # Update with your broker URL
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"  # Update with your result backend URL
+
+Celery Beat Schedule
+If you have periodic tasks (e.g., sending weekly reminders), define them in the Celery Beat schedule in the settings.py file.
+
+# settings.py
+
+CELERY_BEAT_SCHEDULE = {
+    "send_weekly_reminder": {
+        "task": "expense_manager.api.send_reminder",  # Update with your task name
+        "schedule": crontab(day_of_week=1, hour=0, minute=0),  # Adjust the schedule as needed
+    }
+}
+
+Reducing Email Task Load
+Consider modifying your code to handle email notifications asynchronously, offloading the task from the main application. Update the code accordingly.
+
+How to Run the Application
+Provide instructions on how to run the application, including virtual environment activation and starting the Django development server.

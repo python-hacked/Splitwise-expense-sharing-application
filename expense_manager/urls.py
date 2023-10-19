@@ -20,6 +20,6 @@ urlpatterns = [
     # API URL
     path("api/add_expense/", AddExpenseView.as_view(), name="add_expense"),
     path("api/view_balances/", api.view_balances, name="api_view_balances"),
-    path("api/send_notification/", api.send_notification, name="send_notification"),
+    path('send_notification/', api.send_notification, name='send_notification'),
     # path('send_reminders/', views.send_reminders, name='send_reminders'),
 ]
